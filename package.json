@@ -1,0 +1,24 @@
+{
+  "name": "torrent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx ts-node src/index.ts",
+    "start:watch": "npx nodemon --exec ts-node src/index.ts -q"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/bencode": "^2.0.0",
+    "@types/bignum": "0.0.29",
+    "@types/node": "^14.0.5",
+    "@types/ws": "^7.2.4",
+    "bencode": "^2.0.1",
+    "bignum": "^0.13.1",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.9.3",
+    "ws": "^7.3.0"
+  }
+}
