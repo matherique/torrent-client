@@ -19,6 +19,19 @@ export type TorrentInfo = {
 
 export type ConnectResponse = {
   connectionId: Buffer;
-  action: number;
+  action: Uint32Array;
   transactionId: number;
+}
+
+export type Peer = {
+  ip: string;
+  port: Uint16Array;
+}
+
+export type AnnounceResponse = {
+  action: Uint32Array;
+  transactionId: number;
+  leechers: Uint32Array;
+  seeders: Uint32Array;
+  peers: Peer[];
 }

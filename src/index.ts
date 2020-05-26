@@ -1,6 +1,18 @@
-import Client from "./client";
+import Tracker from "./tracker";
+import Torrent from "./torrent";
+import Download from "./download";
 
-const torrentClient = new Client("../arquivo.torrent");
-torrentClient.getPeers(peers => {
-  console.log("list of peers", peers);
+let file = "../teste.torrent";
+
+if (process.argv.length > 3 ) {
+  file = process.argv[2];
+}
+
+const torrent = new Torrent(file);
+const tracker = new Tracker(torrent);
+
+const downloader = new Download(tracker);
+
+tracker.getPeers(peers => {
+  peers.forEach(downloader.pull);
 });
