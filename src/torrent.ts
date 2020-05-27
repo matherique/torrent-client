@@ -22,6 +22,10 @@ export default class Torrent {
     return parse(this.data.announce.toString("utf8"));
   }
 
+  public getInfo(): TorrentInfo {
+    return this.data;
+  }
+
   public getDate(): TorrentInfo {
     return this.data;
   }

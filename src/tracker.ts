@@ -19,11 +19,21 @@ export default class Tracker {
   public async getPeers(callback: (peers: Peer[]) => void): Promise<void> {
     const socket = this.createSocketConnection();
     const connReq = this.createConnectionRequest();
+    let connected = false;
 
     this.send(socket, connReq);
 
-    socket.on("message", async (response) => {
+    socket.on("connect", () => connected = true);
+
+    socket.on("listening", () => console.log("is listening", connected));
+
+    socket.on("error", error => console.log("Error tracker", error.message));
+
+    socket.on("message", async (response, info) => {
+      console.log("message info", info);
       if (this.getResponseType(response) === "connect") {
+        connected = true;
+        console.log("message: connect");
         // 2. receive and parse connect response
         const connResp = await this.parseConnectionResp(response);
         console.log("connresp", connResp)
@@ -32,11 +42,11 @@ export default class Tracker {
 
         this.send(socket, announceReq);
       } else if (this.getResponseType(response) === "announce") {
-        console.log("announce");
+        console.log("message: announce");
         // 4. parse announce response
         const announceResp = await this.parseAnnounceResp(response);
-        
-        // console.log("announceResp", announceResp)
+
+        console.log("announceResp", announceResp)
         // 5. pass peers to callback
         callback(announceResp.peers);
       }

@@ -39,9 +39,13 @@ export type AnnounceResponse = {
 export type Payload = {
   index: number;
   begin: number;
-  length: number;
-  block: Buffer;
+  length?: Buffer;
+  block?: Buffer;
 }
 
-export type Block = {
+export type MessageInfo = {
+  size: number;
+  id: number;
+  payload: Payload|null;
 }
+

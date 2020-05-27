@@ -2,16 +2,42 @@ import { Buffer } from "buffer";
 
 import Torrent from "./torrent";
 import { genId } from "./utils";
-import { Payload } from "./types";
+import { Payload, MessageInfo } from "./types";
 
 export default class Message {
 
-  public static isHandshake(msg: Buffer): boolean {
-    return msg.length === msg.readUInt8(0) + 49 &&
-      msg.toString('utf8', 1) === 'BitTorrent protocol';
+  public static parse(message: Buffer): MessageInfo {
+    const id = message.length > 4 ? message.readInt8(4) : null;
+    const p = message.length > 5 ? message.slice(5) : null;
+
+    let payload: Payload;
+
+    if (id === 6 || id === 7 || id === 8) {
+      const rest = p.slice(8);
+
+      payload = {
+        index: p.readInt32BE(0),
+        begin: p.readInt32BE(4)
+      };
+
+      const pp = id === 7 ? 'block' : 'length';
+
+      payload[pp] = rest;
+    }
+
+    return {
+      size : message.readInt32BE(0),
+      id : id,
+      payload : payload
+    }
   }
 
-  public static setHandShake(torrent: Torrent): Buffer { 
+  public static isHandshake(message: Buffer): boolean {
+    return message.length === message.readUInt8(0) + 49 &&
+      message.toString('utf8', 1) === 'BitTorrent protocol';
+  }
+
+  public static setHandshake(torrent: Torrent): Buffer { 
     const buf = Buffer.alloc(68);
     // pstrlen
     buf.writeUInt8(19, 0);
@@ -89,7 +115,7 @@ export default class Message {
     return buf;
   }
 
-  public static setRequest(payload: Payload): Buffer {
+  public static setRequest(payload: any): Buffer {
     const buf = Buffer.alloc(17);
     // length
     buf.writeUInt32BE(13, 0);
@@ -119,7 +145,7 @@ export default class Message {
     return buf;
   }
 
-  public static setCancel(payload: Payload): Buffer {
+  public static setCancel(payload: any): Buffer {
     const buf = Buffer.alloc(17);
     // length
     buf.writeUInt32BE(13, 0);
