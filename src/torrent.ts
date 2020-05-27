@@ -18,24 +18,24 @@ export default class Torrent {
     this.data = this.open();
   }
 
-  getTracker(): Url {
+  public getTracker(): Url {
     return parse(this.data.announce.toString("utf8"));
   }
 
-  getDate(): TorrentInfo {
+  public getDate(): TorrentInfo {
     return this.data;
   }
 
-  open(): TorrentInfo {
+  public open(): TorrentInfo {
     return bencode.decode(this.bufContent) as TorrentInfo;
   }
 
-  getInfoHash(): Buffer {
+  public getInfoHash(): Buffer {
     const info = bencode.encode(this.data.info);
     return crypto.createHash("sha1").update(info).digest();
   }
 
-  getSize(): Buffer {
+  public getSize(): Buffer {
     let size = this.data.info.length;
 
     if (this.data.info.files) {

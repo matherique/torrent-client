@@ -11,8 +11,10 @@ if (process.argv.length > 3 ) {
 const torrent = new Torrent(file);
 const tracker = new Tracker(torrent);
 
-const downloader = new Download(tracker);
+const downloader = new Download(tracker, torrent);
 
 tracker.getPeers(peers => {
-  peers.forEach(downloader.pull);
+  peers.forEach(peer => {
+    downloader.pull(peer);
+  });
 });

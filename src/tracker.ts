@@ -16,7 +16,7 @@ export default class Tracker {
     return dgram.createSocket("udp4");
   }
 
-  async getPeers(callback: (peers: Peer[]) => void): Promise<void> {
+  public async getPeers(callback: (peers: Peer[]) => void): Promise<void> {
     const socket = this.createSocketConnection();
     const connReq = this.createConnectionRequest();
 
@@ -78,7 +78,7 @@ export default class Tracker {
   protected async parseConnectionResp(response: Buffer): Promise<ConnectResponse> {
     return new Promise((res) =>
       res({
-        action: new Uint32Array(response.readUInt32BE(0)),
+        action: response.readUInt32BE(0),
         transactionId: response.readUInt32BE(4),
         connectionId: response.slice(8),
       }),
@@ -121,14 +121,14 @@ export default class Tracker {
   protected async parseAnnounceResp(response: Buffer): Promise<AnnounceResponse> {
     return new Promise(res => {
       res({
-        action: new Uint32Array(response.readUInt32BE(0)),
+        action: response.readUInt32BE(0),
         transactionId: response.readUInt32BE(4),
-        leechers: new Uint32Array(response.readUInt32BE(8)),
-        seeders: new Uint32Array(response.readUInt32BE(12)),
+        leechers: response.readUInt32BE(8),
+        seeders: response.readUInt32BE(12),
         peers: groupBySize(response.slice(20), 6).map((address) => {
           return {
             ip: address.slice(0, 4).join("."),
-            port: new Uint16Array(address.readUInt16BE(4)),
+            port: address.readUInt16BE(4),
           } as Peer;
         }),
       });
