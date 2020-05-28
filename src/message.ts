@@ -2,11 +2,12 @@ import { Buffer } from "buffer";
 
 import Torrent from "./torrent";
 import { genId } from "./utils";
+
 import { Payload, MessageInfo } from "./types";
 
 export default class Message {
 
-  public static parse(message: Buffer): MessageInfo {
+  public parse(message: Buffer): MessageInfo {
     const id = message.length > 4 ? message.readInt8(4) : null;
     const p = message.length > 5 ? message.slice(5) : null;
 
@@ -17,32 +18,33 @@ export default class Message {
 
       payload = {
         index: p.readInt32BE(0),
-        begin: p.readInt32BE(4)
+        begin: p.readInt32BE(4),
       };
 
-      const pp = id === 7 ? 'block' : 'length';
-
+      const pp = id === 7 ? "block" : "length";
       payload[pp] = rest;
     }
 
     return {
-      size : message.readInt32BE(0),
-      id : id,
-      payload : payload
-    }
+      size: message.readInt32BE(0),
+      id: id,
+      payload: payload,
+    };
+  }
+  
+  public isHandshake(message: Buffer): boolean {
+    return (
+      message.length === message.readUInt8(0) + 49 &&
+      message.toString("utf8", 1) === "BitTorrent protocol"
+    );
   }
 
-  public static isHandshake(message: Buffer): boolean {
-    return message.length === message.readUInt8(0) + 49 &&
-      message.toString('utf8', 1) === 'BitTorrent protocol';
-  }
-
-  public static setHandshake(torrent: Torrent): Buffer { 
+  public setHandshake(torrent: Torrent): Buffer {
     const buf = Buffer.alloc(68);
     // pstrlen
     buf.writeUInt8(19, 0);
     // pstr
-    buf.write('BitTorrent protocol', 1);
+    buf.write("BitTorrent protocol", 1);
     // reserved
     buf.writeUInt32BE(0, 20);
     buf.writeUInt32BE(0, 24);
@@ -53,11 +55,11 @@ export default class Message {
     return buf;
   }
 
-  public static setKeepAlive(): Buffer {
+  public setKeepAlive(): Buffer {
     return Buffer.alloc(4);
   }
 
-  public static setChoke(): Buffer {
+  public setChoke(): Buffer {
     const buf = Buffer.alloc(5);
     // length
     buf.writeUInt32BE(1, 0);
@@ -66,7 +68,7 @@ export default class Message {
     return buf;
   }
 
-  public static setUnchoke(): Buffer {
+  public setUnchoke(): Buffer {
     const buf = Buffer.alloc(5);
     // length
     buf.writeUInt32BE(1, 0);
@@ -75,7 +77,7 @@ export default class Message {
     return buf;
   }
 
-  public static setInterested(): Buffer {
+  public setInterested(): Buffer {
     const buf = Buffer.alloc(5);
     // length
     buf.writeUInt32BE(1, 0);
@@ -84,7 +86,7 @@ export default class Message {
     return buf;
   }
 
-  public static setUninterested(): Buffer {
+  public setUninterested(): Buffer {
     const buf = Buffer.alloc(5);
     // length
     buf.writeUInt32BE(1, 0);
@@ -93,7 +95,7 @@ export default class Message {
     return buf;
   }
 
-  public static setHave(payload: number): Buffer {
+  public setHave(payload: number): Buffer {
     const buf = Buffer.alloc(9);
     // length
     buf.writeUInt32BE(5, 0);
@@ -104,7 +106,7 @@ export default class Message {
     return buf;
   }
 
-  public static setBitfield(bitfield: Buffer): Buffer {
+  public setBitfield(bitfield: Buffer): Buffer {
     const buf = Buffer.alloc(14);
     // length
     buf.writeUInt32BE(bitfield.length + 1, 0);
@@ -115,7 +117,7 @@ export default class Message {
     return buf;
   }
 
-  public static setRequest(payload: any): Buffer {
+  public setRequest(payload: any): Buffer {
     const buf = Buffer.alloc(17);
     // length
     buf.writeUInt32BE(13, 0);
@@ -130,7 +132,7 @@ export default class Message {
     return buf;
   }
 
-  public static setPiece(payload: Payload): Buffer {
+  public setPiece(payload: Payload): Buffer {
     const buf = Buffer.alloc(payload.block.length + 13);
     // length
     buf.writeUInt32BE(payload.block.length + 9, 0);
@@ -145,7 +147,7 @@ export default class Message {
     return buf;
   }
 
-  public static setCancel(payload: any): Buffer {
+  public setCancel(payload: any): Buffer {
     const buf = Buffer.alloc(17);
     // length
     buf.writeUInt32BE(13, 0);
@@ -160,7 +162,7 @@ export default class Message {
     return buf;
   }
 
-  public static setPort(payload: number): Buffer {
+  public setPort(payload: number): Buffer {
     const buf = Buffer.alloc(7);
     // length
     buf.writeUInt32BE(3, 0);
@@ -171,4 +173,3 @@ export default class Message {
     return buf;
   }
 }
-
