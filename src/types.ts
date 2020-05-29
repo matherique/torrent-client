@@ -48,4 +48,3 @@ export type MessageInfo = {
   id: number;
   payload: Payload|null;
 }
-

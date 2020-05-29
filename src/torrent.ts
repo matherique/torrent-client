@@ -26,10 +26,6 @@ export default class Torrent {
     return this.data;
   }
 
-  public getDate(): TorrentInfo {
-    return this.data;
-  }
-
   public open(): TorrentInfo {
     return bencode.decode(this.bufContent) as TorrentInfo;
   }
@@ -43,7 +39,7 @@ export default class Torrent {
     let size = this.data.info.length;
 
     if (this.data.info.files) {
-      size = this.data.info.files.map((file) => file.length ).reduce((a, b) => a + b)
+      size = this.data.info.files.map((file) => file.length).reduce((a, b) => a + b)
     }
 
     return bignum.toBuffer(size, { size: 8, endian : 'big'});

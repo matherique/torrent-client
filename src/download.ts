@@ -2,7 +2,10 @@ import { Socket } from "net";
 import { Buffer } from "buffer";
 
 import Torrent from "./torrent";
+import Queue from "./queue";
 import Message from "./message";
+import Pieces from "./pieces";
+
 import { Peer, Payload } from "./types";
 
 function getAdd({ ip, port }: Peer): string {
@@ -13,19 +16,24 @@ export default class Download {
   private socket: Socket;
   private torrent: Torrent;
   private message: Message;
-  private connectedList: string[];
+  private pieces: Pieces;
+  private requested: boolean[];
+  private queue: Queue;
 
   constructor(torrent: Torrent) {
     this.socket = new Socket();
     this.message = new Message();
     this.torrent = torrent;
-    this.connectedList = [];
+
+    const piecesSize = this.torrent.getInfo().info.piece.length;
+    this.pieces = new Pieces(piecesSize / 20);
   }
 
   // TODO: this is a good way to deal with this ?
   public pull(peer: Peer): void {
     this.onError();
     this.connect(peer);
+    this.queue = new Queue();
 
     this.onWholeMessage((message) => {
       this.messageHandler(message);
@@ -40,24 +48,18 @@ export default class Download {
 
       if (msg.id === 0) this.chokeHandler();
       if (msg.id === 1) this.unchokeHandler();
-      if (msg.id === 4) this.haveHandler(msg.payload);
+      if (msg.id === 4) this.haveHandler(msg.payload.block);
       if (msg.id === 5) this.bitfieldHandler(msg.payload);
       if (msg.id === 7) this.pieceHandler(msg.payload);
     }
   }
-  
-  // TODO: mabe use promise
-  private connect(peer: Peer): void {
-    const { port, ip } = peer;
 
-    console.log("connecting to ", getAdd(peer));
+  private connect({ port, ip }: Peer): void {
+    console.log("connecting to ", getAdd({ port, ip }));
 
-    if (!this.connectedList.find(p => p === getAdd(peer))) {
-      this.socket.connect(port, ip, () => {
-        this.socket.write(this.message.setHandshake(this.torrent));
-      });
-      this.connectedList.push(getAdd(peer));
-    }
+    this.socket.connect(port, ip, () => {
+      this.socket.write(this.message.setHandshake(this.torrent));
+    });
   }
 
   protected getMessageSize(handshake: boolean, message: Buffer): number {
@@ -95,8 +97,19 @@ export default class Download {
     throw Error("unchokeHandler not implemented");
   }
 
-  public haveHandler(payload: Payload): void {
-    throw Error("haveHandler not implemented");
+  public haveHandler(payload: Buffer): void {
+    const pieceIndex = payload.readUInt32BE();
+  
+    this.queue.push(pieceIndex); 
+    if (this.queue.length === 1){
+      this.requestPiece(pieceIndex);
+    }
+    
+    if (!this.requested[pieceIndex]) {
+      this.socket.write(this.message.setRequest(null))
+    }
+
+    this.requested[pieceIndex] = true;
   }
 
   public bitfieldHandler(payload: Payload): void {
@@ -105,5 +118,13 @@ export default class Download {
 
   public pieceHandler(payload: Payload): void {
     throw Error("pieceHandler not implemented");
+  }
+
+  public requestPiece(pieceIndex: number): void {
+    if (this.requested[this.queue[0]]) {
+      this.queue.shift();
+    } else {
+      this.socket.write(this.message.setRequest(pieceIndex));
+    }
   }
 }
