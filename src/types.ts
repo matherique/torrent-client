@@ -46,5 +46,5 @@ export type Payload = {
 export type MessageInfo = {
   size: number;
   id: number;
-  payload: Payload|null;
+  payload?: Payload;
 }

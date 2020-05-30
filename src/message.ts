@@ -7,6 +7,7 @@ import { Payload, MessageInfo } from "./types";
 
 export default class Message {
 
+  // TODO: make more types based on possible messages
   public parse(message: Buffer): MessageInfo {
     const id = message.length > 4 ? message.readInt8(4) : null;
     const p = message.length > 5 ? message.slice(5) : null;
@@ -117,7 +118,7 @@ export default class Message {
     return buf;
   }
 
-  public setRequest(payload: any): Buffer {
+  public setRequest(payload: Payload): Buffer {
     const buf = Buffer.alloc(17);
     // length
     buf.writeUInt32BE(13, 0);
@@ -128,7 +129,7 @@ export default class Message {
     // begin
     buf.writeUInt32BE(payload.begin, 9);
     // length
-    buf.writeUInt32BE(payload.length, 13);
+    buf.writeUInt32BE(payload.length.length, 13);
     return buf;
   }
 
@@ -147,7 +148,7 @@ export default class Message {
     return buf;
   }
 
-  public setCancel(payload: any): Buffer {
+  public setCancel(payload: Payload): Buffer {
     const buf = Buffer.alloc(17);
     // length
     buf.writeUInt32BE(13, 0);
@@ -158,7 +159,7 @@ export default class Message {
     // begin
     buf.writeUInt32BE(payload.begin, 9);
     // length
-    buf.writeUInt32BE(payload.length, 13);
+    buf.writeUInt32BE(payload.length.length, 13);
     return buf;
   }
 

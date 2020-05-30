@@ -1,0 +1,31 @@
+# Protocolo 
+
+- HANDSHAKE
+Verificar se o peer tem o arquivo que voce esta interessado 
+Se ele possuir o arquivo: envia mensagem de confirmação
+Se ele não possuir: fecha conexao
+
+- HAVE and BITFIELD 
+O peer vai te mostrar quais peças ele tem 
+HAVE: numero(index) da peça 
+BIEFIELD: todas as peças que o peer tem em uma mensagem 
+      string of bits contendo todas as peças que ele possuem
+      1 = tem
+      0 = nao tem 
+      
+Status
+CHOKED: peer nao quer compartilhar com voce 
+UNCHOKED: peer esta disposto a compartilhar com voce 
+INTERESSED: voce quer o que o peer tem 
+UNINTERESSED: voce nao quer o que o peer tem 
+
+Sempre começa com CHOKED UNINTERESSED
+
+1. enviar mensagem INTERESSED
+  devolve uma mensagem de choked ou unchoked
+    - caso choked: fechar conexao
+
+
+enviar Request Message com o index da peça que voce quer
+recebe Piece Message com bytes of data que voce pediu
+

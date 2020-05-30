@@ -70,7 +70,7 @@ export default class Download {
     let savedBuf = Buffer.alloc(0);
     let handshake = true;
 
-    this.socket.on("data", (response) => {
+    this.socket.on("data", response => {
       const msgLen = this.getMessageSize(handshake, response);
 
       savedBuf = Buffer.concat([savedBuf, response]);
@@ -90,19 +90,20 @@ export default class Download {
   }
 
   public chokeHandler(): void {
-    throw Error("chokeHandler not implemented");
+    this.socket.end();
   }
 
   public unchokeHandler(): void {
-    throw Error("unchokeHandler not implemented");
+    this.queue.setChoked(false);
+    this.requestPiece();
   }
 
   public haveHandler(payload: Buffer): void {
     const pieceIndex = payload.readUInt32BE();
   
     this.queue.push(pieceIndex); 
-    if (this.queue.length === 1){
-      this.requestPiece(pieceIndex);
+    if (this.queue.size() === 1){
+      this.requestPiece();
     }
     
     if (!this.requested[pieceIndex]) {
@@ -120,11 +121,18 @@ export default class Download {
     throw Error("pieceHandler not implemented");
   }
 
-  public requestPiece(pieceIndex: number): void {
-    if (this.requested[this.queue[0]]) {
-      this.queue.shift();
-    } else {
-      this.socket.write(this.message.setRequest(pieceIndex));
+  public requestPiece(): void{ 
+    if (this.queue.isChoked())
+      return null;
+
+    while (this.queue.size()) {
+      const pieceIndex = this.queue.shift();
+
+      if(this.pieces.needed(pieceIndex)) {
+        this.socket.write(this.message.setRequest(pieceIndex));
+        this.pieces.addRequested(pieceIndex);
+        break;
+      }
     }
   }
 }

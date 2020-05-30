@@ -10,6 +10,14 @@ export default class Pieces {
     this.requested = new Array(this.size).fill(false);
   }
   
+  public getRecieved(): boolean[] {
+    return this.recieved;
+  }
+
+  public getRequested(): boolean[] {
+    return this.requested;
+  }
+  
   public addReceived(index: number): void {
     this.recieved[index] = true;
   }
