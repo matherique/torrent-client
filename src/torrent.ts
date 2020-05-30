@@ -5,7 +5,9 @@ import crypto from "crypto";
 import bignum from "bignum";
 import { Url, parse } from "url";
 
-import { TorrentInfo } from "./types";
+import { TorrentInfo, TorrentPices } from "./types";
+
+export const BLOCK_LEN = Math.pow(2, 14);
 
 export default class Torrent {
   protected bufContent: Buffer;
@@ -22,8 +24,12 @@ export default class Torrent {
     return parse(this.data.announce.toString("utf8"));
   }
 
-  public getInfo(): TorrentInfo {
-    return this.data;
+  public getPiecesSize(): number {
+    return this.data.info.piece.length;
+  }
+
+  public getInfo(): TorrentPices {
+    return this.data.info;
   }
 
   public open(): TorrentInfo {
@@ -44,4 +50,30 @@ export default class Torrent {
 
     return bignum.toBuffer(size, { size: 8, endian : 'big'});
   }
+
+  public pieceLen(index: number): number { 
+    const totalLength = bignum.fromBuffer(this.getSize()).toNumber();
+    const pieceLength = this.getInfo()["piece length"];
+
+    const lastPieceLength = totalLength % pieceLength;
+    const lastPieceIndex = Math.floor(totalLength / pieceLength);
+
+    return lastPieceIndex === index ? lastPieceLength : pieceLength;
+  }
+
+  public blocksPerPieces(index: number): number {
+    const pieceLength = this.pieceLen(index);
+    return Math.ceil(pieceLength / BLOCK_LEN);
+  }
+
+  public blockLen(pieceIndex: number, blockIndex: number): number { 
+    const pieceLength = this.pieceLen(pieceIndex);
+
+    const lastPieceLength = pieceLength % BLOCK_LEN;
+    const lastPieceIndex = Math.floor(pieceLength / BLOCK_LEN);
+
+    return blockIndex === lastPieceIndex ? lastPieceLength : BLOCK_LEN;
+
+  }
+
 }

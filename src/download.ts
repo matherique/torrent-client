@@ -25,16 +25,15 @@ export default class Download {
     this.message = new Message();
     this.torrent = torrent;
 
-    const piecesSize = this.torrent.getInfo().info.piece.length;
-    this.pieces = new Pieces(piecesSize / 20);
+    this.pieces = new Pieces(this.torrent);
   }
 
   // TODO: this is a good way to deal with this ?
   public pull(peer: Peer): void {
     this.onError();
     this.connect(peer);
-    this.queue = new Queue();
 
+    this.queue = new Queue(this.torrent);
     this.onWholeMessage((message) => {
       this.messageHandler(message);
     });
@@ -45,7 +44,7 @@ export default class Download {
       this.socket.write(this.message.setInterested());
     } else {
       const msg = this.message.parse(message);
-
+    
       if (msg.id === 0) this.chokeHandler();
       if (msg.id === 1) this.unchokeHandler();
       if (msg.id === 4) this.haveHandler(msg.payload.block);
@@ -70,10 +69,10 @@ export default class Download {
     let savedBuf = Buffer.alloc(0);
     let handshake = true;
 
-    this.socket.on("data", response => {
-      const msgLen = this.getMessageSize(handshake, response);
+    this.socket.on("data", message => {
+      const msgLen = this.getMessageSize(handshake, message);
 
-      savedBuf = Buffer.concat([savedBuf, response]);
+      savedBuf = Buffer.concat([savedBuf, message]);
 
       while (savedBuf.length >= 4 && savedBuf.length >= msgLen) {
         callback(savedBuf.slice(0, msgLen));
@@ -94,18 +93,18 @@ export default class Download {
   }
 
   public unchokeHandler(): void {
-    this.queue.setChoked(false);
+    this.queue.choked = false;
     this.requestPiece();
   }
 
   public haveHandler(payload: Buffer): void {
     const pieceIndex = payload.readUInt32BE();
-  
-    this.queue.push(pieceIndex); 
-    if (this.queue.size() === 1){
+
+    this.queue.queue(pieceIndex); 
+    if (this.queue.queue.length === 1){
       this.requestPiece();
     }
-    
+
     if (!this.requested[pieceIndex]) {
       this.socket.write(this.message.setRequest(null))
     }
@@ -122,15 +121,15 @@ export default class Download {
   }
 
   public requestPiece(): void{ 
-    if (this.queue.isChoked())
+    if (this.queue.choked)
       return null;
 
-    while (this.queue.size()) {
-      const pieceIndex = this.queue.shift();
+    while (this.queue.length){
+      const pieceBlock = this.queue.deque();
 
-      if(this.pieces.needed(pieceIndex)) {
-        this.socket.write(this.message.setRequest(pieceIndex));
-        this.pieces.addRequested(pieceIndex);
+      if(this.pieces.needed(pieceBlock)) {
+        this.socket.write(this.message.setRequest(pieceBlock));
+        this.pieces.addRequested(pieceBlock);
         break;
       }
     }

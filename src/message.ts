@@ -6,13 +6,17 @@ import { genId } from "./utils";
 import { Payload, MessageInfo } from "./types";
 
 export default class Message {
-
   // TODO: make more types based on possible messages
   public parse(message: Buffer): MessageInfo {
     const id = message.length > 4 ? message.readInt8(4) : null;
     const p = message.length > 5 ? message.slice(5) : null;
 
     let payload: Payload;
+
+    const parsed = {
+      size: message.readInt32BE(0),
+      id: id,
+    };
 
     if (id === 6 || id === 7 || id === 8) {
       const rest = p.slice(8);
@@ -22,17 +26,18 @@ export default class Message {
         begin: p.readInt32BE(4),
       };
 
-      const pp = id === 7 ? "block" : "length";
-      payload[pp] = rest;
+      if (id === 7) {
+        payload["block"] = rest;
+      } else {
+        payload["length"] = rest.readInt32BE(0);
+      }
+
+      parsed["payload"] = payload;
     }
 
-    return {
-      size: message.readInt32BE(0),
-      id: id,
-      payload: payload,
-    };
+    return parsed;
   }
-  
+
   public isHandshake(message: Buffer): boolean {
     return (
       message.length === message.readUInt8(0) + 49 &&
@@ -96,14 +101,14 @@ export default class Message {
     return buf;
   }
 
-  public setHave(payload: number): Buffer {
+  public setHave(pieceIndex: number): Buffer {
     const buf = Buffer.alloc(9);
     // length
     buf.writeUInt32BE(5, 0);
     // id
     buf.writeUInt8(4, 4);
     // piece index
-    buf.writeUInt32BE(payload, 5);
+    buf.writeUInt32BE(pieceIndex, 5);
     return buf;
   }
 
@@ -129,7 +134,7 @@ export default class Message {
     // begin
     buf.writeUInt32BE(payload.begin, 9);
     // length
-    buf.writeUInt32BE(payload.length.length, 13);
+    buf.writeUInt32BE(payload.length, 13);
     return buf;
   }
 
@@ -159,7 +164,7 @@ export default class Message {
     // begin
     buf.writeUInt32BE(payload.begin, 9);
     // length
-    buf.writeUInt32BE(payload.length.length, 13);
+    buf.writeUInt32BE(payload.length, 13);
     return buf;
   }
 

@@ -1,41 +1,58 @@
+import Torrent, { BLOCK_LEN } from "./torrent";
+
+import { PieceBlock } from "./types";
+
+type Requested = boolean[][];
+type Recieved = boolean[][];
 
 export default class Pieces {
-  protected size: number;
-  protected requested: boolean[];
-  protected recieved: boolean[];
+  protected requested: Requested;
+  protected received: Recieved;
+  protected torrent: Torrent;
 
-  constructor(size: number) { 
-    this.size = size;
-    this.recieved = new Array(this.size).fill(false);
-    this.requested = new Array(this.size).fill(false);
-  }
-  
-  public getRecieved(): boolean[] {
-    return this.recieved;
+  constructor(torrent: Torrent) {
+    this.torrent = torrent;
+    this.received = this.buildPiecesArray();
+    this.requested = this.buildPiecesArray();
   }
 
-  public getRequested(): boolean[] {
+  public getRecieved(): Recieved {
+    return this.received;
+  }
+
+  public getRequested(): Requested {
     return this.requested;
   }
-  
-  public addReceived(index: number): void {
-    this.recieved[index] = true;
+
+  public addReceived(pieceBlock: PieceBlock): void {
+    const blockIndex = pieceBlock.length / BLOCK_LEN;
+    this.received[pieceBlock.index][blockIndex] = true;
   }
 
-  public addRequested(index: number): void {
-    this.requested[index] = true;
+  public addRequested(pieceBlock: PieceBlock): void {
+    const blockIndex = pieceBlock.length / BLOCK_LEN;
+    this.received[pieceBlock.index][blockIndex] = true;
   }
 
-  public needed(index: number): boolean {
-    if (this.requested.every(i => i === true)) {
-      this.requested = this.recieved.slice();
+  public needed(pieceBlock: PieceBlock): boolean {
+    if (this.requested.every((blocks) => blocks.every(i => i))) {
+      this.requested = this.received.map(blocks => blocks.slice());
     }
 
-    return !this.requested[index];
+    const blockIndex = pieceBlock.begin / BLOCK_LEN;
+    return !this.requested[pieceBlock.index][blockIndex];
   }
 
   public isDone(): boolean {
-    return this.recieved.every(i => i === true);
+    return this.received.every(blocks => blocks.every(i => i));
   }
 
+  private buildPiecesArray(): boolean[][] {
+    const nPieces = this.torrent.getPiecesSize() / 20;
+    const arr = new Array(nPieces).fill(null);
+
+    return arr.map((_, i) => {
+      return new Array(this.torrent.blocksPerPieces(i)).fill(false);
+    });
+  }
 }
