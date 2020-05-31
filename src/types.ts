@@ -4,7 +4,7 @@ export type TorrentPices = {
   length: number;
   name: Buffer;
   "piece length": number;
-  piece: Buffer;
+  pieces: Buffer;
   files?: Buffer[];
 };
 
@@ -48,7 +48,7 @@ export type Payload = {
 export type MessageInfo = {
   size: number;
   id: number;
-  payload?: Payload;
+  payload?: Payload & Buffer;
 }
 
 export type KeepAliveMessage = Buffer;

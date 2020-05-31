@@ -4,7 +4,10 @@ import crypto from "crypto";
 import { ConnectResponse, AnnounceResponse, Peer } from "./types";
 import { genId, groupBySize } from "./utils";
 import Torrent from "./torrent";
+import { createLogger } from "./logger";
 
+const log = createLogger("Tracker");
+ 
 export default class Tracker {
   private torrent: Torrent;
 
@@ -17,40 +20,51 @@ export default class Tracker {
   }
 
   public async getPeers(callback: (peers: Peer[]) => void): Promise<void> {
-    const socket = this.createSocketConnection();
+    let socket = this.createSocketConnection();
     const connReq = this.createConnectionRequest();
-    let connected = false;
+    let connect = false;
 
     this.send(socket, connReq);
+    socket.on("listening", () =>  log("Server is Listening"));
 
-    socket.on("connect", () => connected = true);
-
-    socket.on("listening", () => console.log("is listening", connected));
-
-    socket.on("error", error => console.log("Error tracker", error.message));
+    socket.on("error", error => log("Error udp connection", error.message));
 
     socket.on("message", async (response, info) => {
-      console.log("message info", info);
+      log("Message info", info);
+
+      connect = true;
+      
+      clearInterval(reconnect);
+
       if (this.getResponseType(response) === "connect") {
-        connected = true;
-        console.log("message: connect");
+        log("Connected to udp server");
         // 2. receive and parse connect response
         const connResp = await this.parseConnectionResp(response);
-        console.log("connresp", connResp)
+        log("Connected response", connResp)
         // 3. send announce request
         const announceReq = this.createAnnounceRequest(connResp.connectionId);
 
         this.send(socket, announceReq);
       } else if (this.getResponseType(response) === "announce") {
-        console.log("message: announce");
+        log("Annouce Message");
         // 4. parse announce response
         const announceResp = await this.parseAnnounceResp(response);
 
-        console.log("announceResp", announceResp)
+        log("Annouce response ", announceResp)
         // 5. pass peers to callback
         callback(announceResp.peers);
       }
     });
+
+    const reconnect = setInterval(() => {
+      if (!connect) {
+        socket.close();
+        socket = this.createSocketConnection();
+        this.send(socket, connReq);
+        log("Reconnecting");
+      }
+    }, 10000);
+
   } 
 
   protected createConnectionRequest(): Buffer {
@@ -73,8 +87,11 @@ export default class Tracker {
     const { port, hostname } = this.torrent.getTracker();
     
     socket.send(message, 0, message.length, +port, hostname, (error, msg) => {
-      console.log("MSG: ", msg);
-      console.log("ERROR: ", error);
+      if (error)
+        log("Error sending message", error);
+
+      if (msg)
+        log("Error connect message", error);
     });
   }
 

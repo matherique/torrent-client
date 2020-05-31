@@ -6,6 +6,9 @@ import bignum from "bignum";
 import { Url, parse } from "url";
 
 import { TorrentInfo, TorrentPices } from "./types";
+import { createLogger } from "./logger";
+
+const log = createLogger("Torrent");
 
 export const BLOCK_LEN = Math.pow(2, 14);
 
@@ -15,7 +18,7 @@ export default class Torrent {
   protected data: TorrentInfo;
 
   constructor(arquivo: string) {
-    this.file = path.resolve(__dirname, arquivo);
+    this.file = path.resolve(__dirname, "../", arquivo);
     this.bufContent = fs.readFileSync(this.file);
     this.data = this.open();
   }
@@ -25,7 +28,7 @@ export default class Torrent {
   }
 
   public getPiecesSize(): number {
-    return this.data.info.piece.length;
+    return this.data.info.pieces.length;
   }
 
   public getInfo(): TorrentPices {
@@ -33,6 +36,7 @@ export default class Torrent {
   }
 
   public open(): TorrentInfo {
+    log("Parsing torrent File");
     return bencode.decode(this.bufContent) as TorrentInfo;
   }
 
