@@ -1,28 +1,20 @@
-import { EventEmitter } from "events";
+import { createTrackerList } from "./torrent";
+import { createDownloader } from "./download";
 
-import Tracker from "./tracker";
-import Torrent from "./torrent";
-import Download from "./download";
+const file = `${process.argv[2] || ""}`;
+const target = `${process.argv[3] || ""}`;
 
-let file = "torrents/teste.torrent";
-
-EventEmitter.defaultMaxListeners = Infinity;
-
-
-if (process.argv.length >= 3) {
-  file = `${process.argv[2]}`;
+if (file === "" || target === "") {
+  throw new Error("informe torrent file and folder to put the dowloaded file(s)");
 }
 
-console.log("Torrent File: ", file)
+(async () => {
+  const { torrent, tracker } = await createTrackerList(file);
+  const downloader = await createDownloader(torrent, target);
 
-const torrent = new Torrent(file);
-const tracker = new Tracker(torrent);
-const downloader = new Download(torrent);
-
-tracker.getPeers((peers) => {
-  console.log("peers lenght: ", peers.length);
-
-  peers.forEach((peer) => {
-    downloader.pull(peer);
+  tracker.getPeers((peers) => {
+    peers.forEach((peer) => {
+      downloader.pull(peer);
+    });
   });
-});
+})();

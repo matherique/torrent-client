@@ -1,5 +1,5 @@
-import Torrent, { BLOCK_LEN } from "./torrent";
-import { PieceBlock  } from "./types";
+import { Torrent, BLOCK_LEN } from "../torrent";
+import { PieceBlock  } from "../types";
 
 export default class Queue {
   public choked: boolean;

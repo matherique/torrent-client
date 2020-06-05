@@ -1,12 +1,13 @@
 import crypto from "crypto";
 
-let id = null;
+let id: Buffer = null;
 
 export function genId(): Buffer {
   if (!id) {
     id = crypto.randomBytes(20);
-    Buffer.from('-MT0001-').copy(id, 0);
+    Buffer.from('-AT0001-').copy(id, 0);
   }
+
   return id;
 }
 

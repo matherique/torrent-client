@@ -1,6 +1,6 @@
-import Torrent, { BLOCK_LEN } from "./torrent";
+import { Torrent, BLOCK_LEN } from "../torrent";
 
-import { PieceBlock } from "./types";
+import { PieceBlock } from "../types";
 
 type Requested = boolean[][];
 type Recieved = boolean[][];

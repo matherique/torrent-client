@@ -3,13 +3,13 @@ import * as path from "path";
 import { Socket } from "net";
 import { Buffer } from "buffer";
 
-import Torrent from "./torrent";
+import { Torrent } from "../torrent";
 import Queue from "./queue";
-import Message from "./message";
+import Message from "../message";
 import Pieces from "./pieces";
 
-import { Peer, Payload } from "./types";
-import { createLogger } from "./logger";
+import { Peer, Payload } from "../types";
+import { createLogger } from "../logger";
 
 const log = createLogger("Download");
 
@@ -20,14 +20,15 @@ export default class Download {
   private pieces: Pieces;
   private target: number;
   private queue: Queue;
+  private connected: Peer[] = [];
 
-  constructor(torrent: Torrent) {
+  constructor(torrent: Torrent, targetFolder: string) {
     this.message = new Message();
     this.torrent = torrent;
 
     const targetPath = path.resolve(
       __dirname,
-      "../target",
+      targetFolder,
       this.torrent.getInfo().name.toString(),
     );
 
@@ -38,11 +39,13 @@ export default class Download {
   public pull(peer: Peer): void {
     this.socket = new Socket();
 
-    this.onError();
+    this.onError(peer);
     this.createConnection(peer);
 
+    this.socket.on("drain", () => log("Drain:", peer));
     this.socket.on("connect", () => log("Connected:", peer));
     this.socket.on("lookup", (...args) => log("Lookup:", args));
+    this.socket.on("end", () => log("End connection", peer));
 
     this.queue = new Queue(this.torrent);
     this.pieces = new Pieces(this.torrent);
@@ -68,10 +71,18 @@ export default class Download {
     }
   }
 
-  private createConnection({ port, ip }: Peer): void {
+  private createConnection(peer: Peer): void {
+    const { port, ip } = peer;
+
     this.socket.connect(port, ip, () => {
       log("Init connection", { ip, port });
-      this.socket.write(this.message.setHandshake(this.torrent));
+      this.connected.push(peer);
+      const resp = this.socket.write(this.message.setHandshake(this.torrent));
+      if (resp) {
+        log("Response Socket Write", "true");
+      } else {
+        log("Response Socket Write", "false");
+      }
     });
   }
 
@@ -84,6 +95,7 @@ export default class Download {
     let handshake = true;
 
     this.socket.on("data", (message) => {
+      log("Getting data", message);
       const msgLen = this.getMessageSize(handshake, message);
 
       savedBuf = Buffer.concat([savedBuf, message]);
@@ -96,9 +108,17 @@ export default class Download {
     });
   }
 
-  private onError(): void {
+  private onError(peer: Peer): void {
     this.socket.on("error", (error) => {
-      log("Error connection", error);
+      log("Error connection", error.message);
+
+      const connectedIndex = this.connected.findIndex(p=> p === peer);
+      this.connected.splice(connectedIndex, 1);
+
+      if (this.connected.length)
+        log("Peers Connected", this.connected.length);
+
+      this.socket.destroy();
     });
   }
 

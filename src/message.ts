@@ -1,9 +1,12 @@
 import { Buffer } from "buffer";
 
-import Torrent from "./torrent";
+import { Torrent } from "./torrent";
 import { genId } from "./utils";
+import { createLogger } from "./logger";
 
 import { Payload, MessageInfo } from "./types";
+
+const log = createLogger("Message");
 
 export default class Message {
   // TODO: make more types based on possible messages
@@ -41,7 +44,7 @@ export default class Message {
   public isHandshake(message: Buffer): boolean {
     return (
       message.length === message.readUInt8(0) + 49 &&
-      message.toString("utf8", 1) === "BitTorrent protocol"
+        message.toString("utf8", 1) === "BitTorrent protocol"
     );
   }
 
@@ -49,15 +52,19 @@ export default class Message {
     const buf = Buffer.alloc(68);
     // pstrlen
     buf.writeUInt8(19, 0);
+    log("Set Handshake", buf.toString());
     // pstr
-    buf.write("BitTorrent protocol", 1);
+    buf.write('BitTorrent protocol', 1);
     // reserved
     buf.writeUInt32BE(0, 20);
     buf.writeUInt32BE(0, 24);
     // info hash
     torrent.getInfoHash().copy(buf, 28);
+    
     // peer id
-    buf.write(genId().toString());
+    genId().copy(buf, 48);
+    
+    log("Set Handshake", buf.toString());
     return buf;
   }
 

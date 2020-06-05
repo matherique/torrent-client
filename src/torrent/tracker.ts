@@ -1,10 +1,10 @@
 import dgram from "dgram";
 import crypto from "crypto";
 
-import { ConnectResponse, AnnounceResponse, Peer } from "./types";
-import { genId, groupBySize } from "./utils";
+import { ConnectResponse, AnnounceResponse, Peer } from "../types";
+import { genId, groupBySize } from "../utils";
 import Torrent from "./torrent";
-import { createLogger } from "./logger";
+import { createLogger } from "../logger";
 
 const log = createLogger("Tracker");
  
@@ -33,7 +33,6 @@ export default class Tracker {
       log("Message info", info);
 
       connect = true;
-      
       clearInterval(reconnect);
 
       if (this.getResponseType(response) === "connect") {
@@ -51,7 +50,9 @@ export default class Tracker {
         const announceResp = await this.parseAnnounceResp(response);
 
         log("Annouce response ", announceResp)
+
         // 5. pass peers to callback
+        log("Peers length", announceResp.peers.length);
         callback(announceResp.peers);
       }
     });

@@ -1,26 +1,20 @@
-import * as fs from "fs";
-import * as path from "path";
 import bencode from "bencode";
 import crypto from "crypto";
 import bignum from "bignum";
 import { Url, parse } from "url";
 
-import { TorrentInfo, TorrentPices } from "./types";
-import { createLogger } from "./logger";
+import { TorrentInfo, TorrentPices } from "../types";
+import { createLogger } from "../logger";
 
 const log = createLogger("Torrent");
 
 export const BLOCK_LEN = Math.pow(2, 14);
 
 export default class Torrent {
-  protected bufContent: Buffer;
-  protected file: string;
   protected data: TorrentInfo;
 
-  constructor(arquivo: string) {
-    this.file = path.resolve(__dirname, "../", arquivo);
-    this.bufContent = fs.readFileSync(this.file);
-    this.data = this.open();
+  constructor(content: Buffer) {
+    this.data = this.decode(content);
   }
 
   public getTracker(): Url {
@@ -35,9 +29,9 @@ export default class Torrent {
     return this.data.info;
   }
 
-  public open(): TorrentInfo {
-    log("Parsing torrent File");
-    return bencode.decode(this.bufContent) as TorrentInfo;
+  public decode(content: Buffer): TorrentInfo {
+    log("Decode torrent File");
+    return bencode.decode(content) as TorrentInfo;
   }
 
   public getInfoHash(): Buffer {
@@ -77,7 +71,5 @@ export default class Torrent {
     const lastPieceIndex = Math.floor(pieceLength / BLOCK_LEN);
 
     return blockIndex === lastPieceIndex ? lastPieceLength : BLOCK_LEN;
-
   }
-
 }
