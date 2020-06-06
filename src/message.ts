@@ -52,7 +52,6 @@ export default class Message {
     const buf = Buffer.alloc(68);
     // pstrlen
     buf.writeUInt8(19, 0);
-    log("Set Handshake", buf.toString());
     // pstr
     buf.write('BitTorrent protocol', 1);
     // reserved

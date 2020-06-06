@@ -13,7 +13,7 @@ export async function createTrackerList(file: string): Promise<TrackerList> {
   const fileStats = await fs.lstat(file);
 
   if (!fileStats.isFile()) {
-    throw new Error("use a torrent file as a parameter");
+    throw new Error("use a torrent file as a parameter \n");
   }
  
   const filepath = path.resolve(file);

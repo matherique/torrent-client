@@ -173,23 +173,23 @@ export default class Download {
       payload.block.length,
       offset,
       () => {
-        console.log("writing");
+        log("Writing data to a target file");
       },
     );
 
     if (this.pieces.isDone()) {
-      console.log("DONE");
+      log("Download finished");
       this.socket.end();
 
       try {
         fs.closeSync(this.target);
       } catch (error) {
-        console.log("file close: ", error);
+        log("Error file close", error);
+        return;
       }
 
       return;
     }
-
     this.requestPiece();
   }
 

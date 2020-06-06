@@ -8,7 +8,7 @@ export async function createDownloader(torrent: Torrent, target: string): Promis
   const targetStatus = await fs.lstat(target);
 
   if (!targetStatus.isDirectory()) {
-    throw new Error("use a directory as a target to put the downloaded file(s)") 
+    throw new Error("use a directory as a target to put the downloaded file(s) \n") 
   } 
 
   const targetPath = path.resolve(target);
