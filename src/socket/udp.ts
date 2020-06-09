@@ -1,21 +1,22 @@
-import { Socket, createSocket }from "dgram";
+import { Socket, createSocket } from "dgram";
 
 import { createLogger } from "../logger";
+import { UDPSocket } from "../types";
 
 const log = createLogger("UDP Socket");
+
+const RECONNECT_TIME = 20 * 1000;
 
 let reconnect = false;
 let intervalID = null;
 
-export default class UDPSocket {
+export default class UDP implements UDPSocket {
   protected socket: Socket;
-  protected hostname: string;
-  protected port: number;
 
-  constructor(hostname: string, port: number) {
+  constructor(private hostname: string, private port: number) {
     this.hostname = hostname;
     this.port = port;
-    this.socket = createSocket("udp4"); 
+    this.socket = createSocket("udp4");
   }
 
   protected createNewSocketConnection(): void {
@@ -23,13 +24,14 @@ export default class UDPSocket {
     this.socket = createSocket("udp4");
   }
 
-  send(message: Buffer): void {
+  async send(message: Buffer): Promise<void> {
     log("Sending message");
+
     this.socket.send(message, 0, message.length, this.port, this.hostname, (error) => {
       reconnect = true;
-      if (error) log("Error sending message", error);
-    });
-    this.reconnect(message);
+        if (error) log("Error sending message", error);
+      this.reconnect(message); 
+    }); 
   }
 
   shutdown(): void {
@@ -39,23 +41,26 @@ export default class UDPSocket {
 
   async onMessage(callback: (response: Buffer) => Promise<void>): Promise<void> {
     this.socket.on("message", async (response, info) => {
-      reconnect = false;
-      clearInterval(intervalID);
-
+      this.stopReconnection();
       log("Message Info", info);
       callback(response);
-    })
+    });
   }
 
   reconnect(message: Buffer): void {
-    intervalID =  setInterval(() => {
+    intervalID = setInterval(async () => {
       if (reconnect) {
         this.shutdown();
         this.createNewSocketConnection();
-        
-        this.send(message);
+
+        await this.send(message);
         log("Reconnecting UDP connection");
       }
-    }, 15000);
+    }, RECONNECT_TIME);
+  }
+
+  stopReconnection(): void {
+    reconnect = false;
+    clearInterval(intervalID);
   }
 }

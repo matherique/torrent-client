@@ -1,3 +1,5 @@
+import net from "net";
+
 export type TimeStamp = number;
 
 export type TorrentPices = {
@@ -53,59 +55,20 @@ export type MessageInfo = {
 
 export type KeepAliveMessage = Buffer;
 
-export type ChokeMessage = {
-  size: number;
-  id: 0;
-};
+export interface UDPSocket {
+  send(message: Buffer): Promise<void>;
+  shutdown(): void;
+  onMessage(callback: (response: Buffer) => Promise<void>): Promise<void>
+  reconnect(message: Buffer): void;
+  stopReconnection(): void;
+}
 
-export type UnchokeMessage = {
-  size: number;
-  id: number;
-};
+export interface TCPSocket {
+  connect(callback: () => void): void;
+  loggs(): void;
+  onData(callback: (data: Buffer) => void): void;
+  write(message: Buffer): Promise<boolean>;
+  shutdown(): void;
+}
 
-export type InteresedMessage = {
-  size: number;
-  id: number;
-};
-
-export type UninterestedMessage = {
-  size: number;
-  id: number;
-};
-
-export type HaveMessage = {
-  size: number;
-  id: number;
-  payload: Payload;
-};
-
-export type BitfieldMessage = {
-  size: number;
-  id: number;
-  payload: Payload;
-};
-
-export type RequestMessage = {
-  size: number;
-  id: number;
-  payload: Payload;
-};
-
-export type PieceMessage = {
-  size: number;
-  id: number;
-  payload: Payload;
-};
-
-export type CancelMessage = {
-  size: number;
-  id: number;
-  payload: Payload;
-};
-
-export type PortMessage = {
-  size: number;
-  id: number;
-  payload: Payload;
-};
 

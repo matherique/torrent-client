@@ -10,7 +10,7 @@ const log = createLogger("Message");
 
 export default class Message {
   // TODO: make more types based on possible messages
-  public parse(message: Buffer): MessageInfo {
+  public async parse(message: Buffer): Promise<MessageInfo> {
     const id = message.length > 4 ? message.readInt8(4) : null;
     const p = message.length > 5 ? message.slice(5) : null;
 

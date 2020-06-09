@@ -1,10 +1,10 @@
 import crypto from "crypto";
 
-import { ConnectResponse, AnnounceResponse, Peer } from "../types";
+import { ConnectResponse, AnnounceResponse, Peer, UDPSocket } from "../types";
 import { genId, groupBySize } from "../utils";
 import Torrent from "./torrent";
 import { createLogger } from "../logger";
-import UDPSocket from "../socket/udp";
+import { createUDPConnection } from "../socket";
 
 const log = createLogger("Tracker");
  
@@ -16,25 +16,24 @@ export default class Tracker {
     this.torrent = torrent;
 
     const { port, hostname } = this.torrent.getTracker();
-    this.socket = new UDPSocket(hostname, +port);
+    this.socket = createUDPConnection(hostname, +port);
   }
 
   public async getPeers(callback: (peers: Peer[]) => void): Promise<void> {
     const messageConnection = await this.createConnectionRequest();
 
-    this.socket.send(messageConnection);
-    
-    this.socket.onMessage(async (response) => {
+    await this.socket.send(messageConnection);
 
+    await this.socket.onMessage(async (response) => {
       if (this.getResponseType(response) === "connect") {
 
         const announceRequest = await this.receiveConnectionResp(response);
         this.socket.send(announceRequest);
-          
+
       } else if (this.getResponseType(response) === "announce") {
 
-        const announceResponse = await this.receiveAnnouceResp(response);
-        callback(announceResponse.peers);
+        const { peers } = await this.receiveAnnouceResp(response);
+        callback(peers);
 
         this.socket.shutdown();
       }
@@ -53,7 +52,6 @@ export default class Tracker {
   }
 
   private async receiveConnectionResp(response: Buffer): Promise<Buffer> {
-    log("Connected to udp server");
     log("Receive connect message");
     // 2. receive and parse connect response
     const connResp = await this.parseConnectionResp(response);
@@ -69,16 +67,14 @@ export default class Tracker {
     // connection id
     buf.writeUInt32BE(0x417, 0); // 3
     buf.writeUInt32BE(0x27101980, 4);
-    
+
     // action
     buf.writeUInt32BE(0, 8); // 4
-    
+
     // transaction id
     crypto.randomBytes(4).copy(buf, 12); // 5
 
-    return new Promise(res => {
-      res(buf)
-    });
+    return buf;
   }
 
   protected getResponseType(response: Buffer): string {
@@ -89,48 +85,44 @@ export default class Tracker {
   }
 
   protected async parseConnectionResp(response: Buffer): Promise<ConnectResponse> {
-    return new Promise((res) =>
-      res({
-        action: response.readUInt32BE(0),
-        transactionId: response.readUInt32BE(4),
-        connectionId: response.slice(8),
-      }),
-    );
+    return {
+      action: response.readUInt32BE(0),
+      transactionId: response.readUInt32BE(4),
+      connectionId: response.slice(8),
+    };
   }
 
   protected async createAnnounceRequest(connId: Buffer, port = 6881): Promise<Buffer> {
-    return new Promise(res => {
-      const buf = Buffer.allocUnsafe(98);
+    const buf = Buffer.allocUnsafe(98);
 
-      // connection id
-      connId.copy(buf, 0);
-      // action
-      buf.writeUInt32BE(1, 8);
-      // transaction id
-      crypto.randomBytes(4).copy(buf, 12);
-      // info hash
-      this.torrent.getInfoHash().copy(buf, 16);
-      // peerId
-      genId().copy(buf, 36);
-      // downloaded
-      Buffer.alloc(8).copy(buf, 56);
-      // left
-      this.torrent.getSize().copy(buf, 64);
-      // uploaded
-      Buffer.alloc(8).copy(buf, 72);
-      // event
-      buf.writeUInt32BE(0, 80);
-      // ip address
-      buf.writeUInt32BE(0, 80);
-      // key
-      crypto.randomBytes(4).copy(buf, 88);
-      // num want
-      buf.writeInt32BE(-1, 92);
-      // port
-      buf.writeUInt16BE(+port, 96);
+    // connection id
+    connId.copy(buf, 0);
+    // action
+    buf.writeUInt32BE(1, 8);
+    // transaction id
+    crypto.randomBytes(4).copy(buf, 12);
+    // info hash
+    this.torrent.getInfoHash().copy(buf, 16);
+    // peerId
+    genId().copy(buf, 36);
+    // downloaded
+    Buffer.alloc(8).copy(buf, 56);
+    // left
+    this.torrent.getSize().copy(buf, 64);
+    // uploaded
+    Buffer.alloc(8).copy(buf, 72);
+    // event
+    buf.writeUInt32BE(0, 80);
+    // ip address
+    buf.writeUInt32BE(0, 80);
+    // key
+    crypto.randomBytes(4).copy(buf, 88);
+    // num want
+    buf.writeInt32BE(-1, 92);
+    // port
+    buf.writeUInt16BE(+port, 96);
 
-      res(buf);
-    });
+    return buf;
   }
   
   protected async parseAnnounceResp(response: Buffer): Promise<AnnounceResponse> {
