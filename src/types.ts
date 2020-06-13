@@ -1,5 +1,3 @@
-import net from "net";
-
 export type TimeStamp = number;
 
 export type TorrentPices = {

@@ -10,11 +10,14 @@ const log = createLogger("Message");
 
 export default class Message {
   // TODO: make more types based on possible messages
+  // Ver aqui também
   public async parse(message: Buffer): Promise<MessageInfo> {
+    log("Message Length:", message.length); 
+
     const id = message.length > 4 ? message.readInt8(4) : null;
     const p = message.length > 5 ? message.slice(5) : null;
 
-    let payload: Payload;
+    let payload: Payload|Buffer;
 
     const parsed = {
       size: message.readInt32BE(0),
@@ -35,8 +38,11 @@ export default class Message {
         payload["length"] = rest.readInt32BE(0);
       }
 
-      parsed["payload"] = payload;
-    }
+      parsed["payload"] = payload; 
+      return parsed;
+    } 
+
+    parsed["payload"] = p;
 
     return parsed;
   }

@@ -39,7 +39,7 @@ export default class TCP implements TCPSocket {
 
     this.socket.on("error", (error) => {
       log("Error connection", this.id, error.message);
-      this.socket.end();
+      this.shutdown();
     });
   }
 

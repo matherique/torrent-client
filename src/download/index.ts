@@ -38,7 +38,6 @@ class Download extends Handlers {
     this.target = fs.openSync(targetPath, "w");
   }
   
-  // TODO: this is a good way to deal with this ?
   public pull(peer: Peer): void {
     const { ip, port } = peer; 
     this.socket = createTCPConnection(ip, port);
@@ -57,9 +56,12 @@ class Download extends Handlers {
   private async messageHandler(message: Buffer): Promise<void> {
     log("Parsing Message");
     if (this.message.isHandshake(message)) {
+      log("is handshake message");
+
       await this.socket.write(this.message.setInterested());
     } else {
       const msg = await this.message.parse(message);
+      log("Is not a handshake message", msg);
 
       if (msg.id === 0) await this.chokeHandler();
       if (msg.id === 1) await this.unchokeHandler();
@@ -98,7 +100,6 @@ class Download extends Handlers {
 
   public async chokeHandler(): Promise<void> {
     log("ChokeHandler socket end");
-    this.socket.shutdown();
   }
 
   public async unchokeHandler(): Promise<void> {
@@ -118,10 +119,9 @@ class Download extends Handlers {
   }
 
   public async bitfieldHandler(payload: Buffer): Promise<void> {
-    log("BitfieldHandler");
     const queueEmpty = String(this.queue.length) === "0";
 
-    // Erro aqui 
+    log("BitfieldHandler", queueEmpty, payload);
     payload.forEach((byte, i) => {
       for (let j = 0; j < 8; j++) {
         if (byte % 2) this.queue.queue(i * 8 + 7 - j);

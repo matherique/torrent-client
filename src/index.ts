@@ -4,8 +4,10 @@ dotenv.config();
 import { createTrackerList } from "./torrent";
 import { createDownloader } from "./download";
 
-const file = `${process.argv[2] || ""}`;
-const target = `${process.argv[3] || ""}`;
+const len = process.argv.length;
+
+const file = `${process.argv[len - 2] || ""}`;
+const target = `${process.argv[len - 1] || ""}`;
 
 if (file === "" || target === "") {
   throw new Error("informe torrent file and folder to put the dowloaded file(s) \n");
@@ -19,5 +21,6 @@ if (file === "" || target === "") {
     peers.forEach((peer) => {
       downloader.pull(peer);
     });
+    console.log("fim app pers");
   });
 })();
