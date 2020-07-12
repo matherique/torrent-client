@@ -1,5 +1,4 @@
 import * as fs from "fs";
-
 import consoleLog from "./console.log";
 import consoleError from "./console.error";
 
@@ -16,14 +15,12 @@ export function createLogger(prefix: string) {
     queue.push(`${timestamp}[${prefix}] ${title} ${data.map(d => JSON.stringify(d)).join(" ")}`);
 
     const log = (title.search("rro") === -1) ? consoleError : consoleLog;
-    log(`${timestamp}[${prefix}] ${title}`, data);
+    
+    if (process.env.ALL_LOGS === "true") {
+      log(`${timestamp}[${prefix}] ${title}`, data);
+    }
   }
 }
-
-process.nextTick(function () {
-  console.log('Next trip around the event loop, wheeee!')
-});
-
 
 process.on("exit", () => {
   const filename = `log-${new Date().toLocaleString().replace(" ", "-")}.txt`;

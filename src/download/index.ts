@@ -35,7 +35,7 @@ class Download extends Handlers {
       this.torrent.getInfo().name.toString(),
     );
 
-    this.target = fs.openSync(targetPath, "w");
+    this.target = fs.openSync(`${targetPath}.zip`, "w");
   }
   
   public pull(peer: Peer): void {
@@ -136,23 +136,25 @@ class Download extends Handlers {
     this.pieces.addReceived(payload);
 
     log("Piece Handler");
-    // write file
+
     const pieceLength = this.torrent.getInfo()["piece length"]
     const pieceStart = pieceLength + payload.begin;
     const offset = payload.index * pieceStart;
 
     fs.write(this.target, payload.block, 0, payload.block.length, offset, () => {
       log("Writing data to a target file");
-    });
+    }); 
 
     if (this.pieces.isDone()) {
       log("Download finished");
+      console.log("Download finished!");
       this.socket.shutdown();
 
       try {
         fs.closeSync(this.target);
       } catch (error) {
         log("Error file close", error);
+        console.log("Error", error.message);
         return;
       }
 

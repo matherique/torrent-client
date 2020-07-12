@@ -10,7 +10,7 @@ const file = `${process.argv[len - 2] || ""}`;
 const target = `${process.argv[len - 1] || ""}`;
 
 if (file === "" || target === "") {
-  throw new Error("informe torrent file and folder to put the dowloaded file(s) \n");
+  throw new Error("pass the torrent file and forder to put the downloaded file(s) \n");
 }
 
 (async () => {
@@ -21,6 +21,5 @@ if (file === "" || target === "") {
     peers.forEach((peer) => {
       downloader.pull(peer);
     });
-    console.log("fim app pers");
   });
 })();

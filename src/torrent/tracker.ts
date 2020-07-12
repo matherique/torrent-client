@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-import { ConnectResponse, AnnounceResponse, Peer, UDPSocket } from "../types";
+import { ConnectResponse, AnnounceResponse, Peer, UDPSocket  } from "../types";
 import { genId, groupBySize } from "../utils";
 import Torrent from "./torrent";
 import { createLogger } from "../logger";
