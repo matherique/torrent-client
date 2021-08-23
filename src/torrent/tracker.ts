@@ -1,13 +1,13 @@
 import crypto from "crypto";
 
-import { ConnectResponse, AnnounceResponse, Peer, UDPSocket  } from "../types";
+import { ConnectResponse, AnnounceResponse, Peer, UDPSocket } from "../types";
 import { genId, groupBySize } from "../utils";
 import Torrent from "./torrent";
 import { createLogger } from "../logger";
 import { createUDPConnection } from "../socket";
 
 const log = createLogger("Tracker");
- 
+
 export default class Tracker {
   private torrent: Torrent;
   protected socket: UDPSocket;
@@ -19,32 +19,31 @@ export default class Tracker {
     this.socket = createUDPConnection(hostname, +port);
   }
 
-  public async getPeers(callback: (peers: Peer[]) => void): Promise<void> {
+  public async getPeers(): Promise<Peer[]> {
     const messageConnection = await this.createConnectionRequest();
+    this.socket.send(messageConnection);
 
-    await this.socket.send(messageConnection);
-
-    await this.socket.onMessage(async (response) => {
-      if (this.getResponseType(response) === "connect") {
-
-        const announceRequest = await this.receiveConnectionResp(response);
-        this.socket.send(announceRequest);
-
-      } else if (this.getResponseType(response) === "announce") {
-
-        const { peers } = await this.receiveAnnouceResp(response);
-        callback(peers);
-
-        this.socket.shutdown();
-      }
+    return new Promise<Peer[]>((resolve) => {
+      this.socket.onMessage(async (response) => {
+        if (this.getResponseType(response) === "connect") {
+          const announceRequest = await this.receiveConnectionResp(response);
+          this.socket.send(announceRequest);
+        } else if (this.getResponseType(response) === "announce") {
+          const { peers } = await this.receiveAnnouceResp(response);
+          this.socket.shutdown();
+          resolve(peers);
+        }
+      });
     });
-  } 
+  }
 
-  private async receiveAnnouceResp(response: Buffer): Promise<AnnounceResponse> {
+  private async receiveAnnouceResp(
+    response: Buffer,
+  ): Promise<AnnounceResponse> {
     log("Receive annouce message");
     // 4. parse announce response
     const announceResp = await this.parseAnnounceResp(response);
-    log("Annouce response ", announceResp)
+    // log("Annouce response ", announceResp);
 
     // 5. pass peers to callback
     log("Peers length", announceResp.peers.length);
@@ -55,7 +54,7 @@ export default class Tracker {
     log("Receive connect message");
     // 2. receive and parse connect response
     const connResp = await this.parseConnectionResp(response);
-    log("Connected response", connResp)
+    log("Connected response", connResp);
     // 3. send announce request
     const announceReq = await this.createAnnounceRequest(connResp.connectionId);
     return announceReq;
@@ -79,12 +78,14 @@ export default class Tracker {
 
   protected getResponseType(response: Buffer): string {
     const action = response.readUInt32BE(0);
-    
-    if (action === 0) return 'connect';
-    return 'announce';
+
+    if (action === 0) return "connect";
+    return "announce";
   }
 
-  protected async parseConnectionResp(response: Buffer): Promise<ConnectResponse> {
+  protected async parseConnectionResp(
+    response: Buffer,
+  ): Promise<ConnectResponse> {
     return {
       action: response.readUInt32BE(0),
       transactionId: response.readUInt32BE(4),
@@ -92,7 +93,10 @@ export default class Tracker {
     };
   }
 
-  protected async createAnnounceRequest(connId: Buffer, port = 6881): Promise<Buffer> {
+  protected async createAnnounceRequest(
+    connId: Buffer,
+    port = 6881,
+  ): Promise<Buffer> {
     const buf = Buffer.allocUnsafe(98);
 
     // connection id
@@ -124,9 +128,12 @@ export default class Tracker {
 
     return buf;
   }
-  
-  protected async parseAnnounceResp(response: Buffer): Promise<AnnounceResponse> {
-    const groupBuff = groupBySize(response.slice(20), 6)
+
+  protected async parseAnnounceResp(
+    response: Buffer,
+  ): Promise<AnnounceResponse> {
+    const groupBuff = groupBySize(response.slice(20), 6);
+
     const peers = groupBuff.map((address) => {
       return {
         ip: address.slice(0, 4).join("."),
@@ -134,14 +141,14 @@ export default class Tracker {
       } as Peer;
     });
 
-    return new Promise(res => {
+    return new Promise((res) => {
       res({
         action: response.readUInt32BE(0),
         transactionId: response.readUInt32BE(4),
         leechers: response.readUInt32BE(8),
         seeders: response.readUInt32BE(12),
-        peers
+        peers,
       });
-    })
+    });
   }
 }
