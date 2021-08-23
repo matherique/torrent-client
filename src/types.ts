@@ -49,16 +49,14 @@ export type MessageInfo = {
   size: number;
   id: number;
   payload?: Payload & Buffer;
-}
+};
 
 export type KeepAliveMessage = Buffer;
 
 export interface UDPSocket {
-  send(message: Buffer): Promise<void>;
+  send(message: Buffer): void;
   shutdown(): void;
-  onMessage(callback: (response: Buffer) => Promise<void>): Promise<void>
-  reconnect(message: Buffer): void;
-  stopReconnection(): void;
+  onMessage(callback: (message: Buffer) => Promise<void>): void;
 }
 
 export interface TCPSocket {
@@ -68,5 +66,3 @@ export interface TCPSocket {
   write(message: Buffer): Promise<boolean>;
   shutdown(): void;
 }
-
-
