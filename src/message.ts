@@ -9,15 +9,16 @@ import { Payload, MessageInfo } from "./types";
 const log = createLogger("Message");
 
 export default class Message {
+  constructor(private readonly id: number) {}
   // TODO: make more types based on possible messages
   // Ver aqui também
   public async parse(message: Buffer): Promise<MessageInfo> {
-    log("Message Length:", message.length); 
+    log(`Message Length ${this.id}:`, message.length);
 
     const id = message.length > 4 ? message.readInt8(4) : null;
     const p = message.length > 5 ? message.slice(5) : null;
 
-    let payload: Payload|Buffer;
+    let payload: Payload | Buffer;
 
     const parsed = {
       size: message.readInt32BE(0),
@@ -38,9 +39,9 @@ export default class Message {
         payload["length"] = rest.readInt32BE(0);
       }
 
-      parsed["payload"] = payload; 
+      parsed["payload"] = payload;
       return parsed;
-    } 
+    }
 
     parsed["payload"] = p;
 
@@ -50,7 +51,7 @@ export default class Message {
   public isHandshake(message: Buffer): boolean {
     return (
       message.length === message.readUInt8(0) + 49 &&
-        message.toString("utf8", 1) === "BitTorrent protocol"
+      message.toString("utf8", 1) === "BitTorrent protocol"
     );
   }
 
@@ -59,17 +60,18 @@ export default class Message {
     // pstrlen
     buf.writeUInt8(19, 0);
     // pstr
-    buf.write('BitTorrent protocol', 1);
+    buf.write("BitTorrent protocol", 1);
     // reserved
     buf.writeUInt32BE(0, 20);
     buf.writeUInt32BE(0, 24);
     // info hash
+    log("Info hash", torrent.getInfoHash())
     torrent.getInfoHash().copy(buf, 28);
-    
+
     // peer id
     genId().copy(buf, 48);
-    
-    log("Set Handshake", buf.toString());
+
+    log(`Set Handshake ${this.id}`, { length: buf.length });
     return buf;
   }
 
