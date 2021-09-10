@@ -6,8 +6,6 @@ import path from "path";
 import { createTrackerList } from "./torrent";
 import { createDownloader } from "./download";
 
-/*
-
 const len = process.argv.length;
 
 const file = `${process.argv[len - 2] || ""}`;
@@ -18,18 +16,17 @@ if (file === "" || target === "") {
     "pass the torrent file and forder to put the downloaded file(s) \n",
   );
 }
-*/
 
 (async () => {
   try {
-    const { torrent, tracker } = await createTrackerList("./file.torrent");
+    const { torrent, tracker } = await createTrackerList(file);
     const downloader = await createDownloader(
       torrent,
-      path.resolve(__dirname, "..", "./data"),
+      path.resolve(__dirname, "..", target),
     );
 
     const peers = await tracker.getPeers();
-    peers.forEach((peer) => downloader.pull(peer));
+    await Promise.all(peers.map((peer) => downloader.pull(peer)))
   } catch (error) {
     console.log(error);
   }

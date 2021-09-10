@@ -38,7 +38,7 @@ class Download extends Handlers {
     this.target = fs.openSync(`${targetPath}.zip`, "w");
   }
   
-  public pull(peer: Peer): void {
+  public async pull(peer: Peer): Promise<void> {
     const { ip, port } = peer; 
     this.socket = createTCPConnection(ip, port);
 
