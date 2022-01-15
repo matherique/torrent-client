@@ -21,12 +21,10 @@ export function createLogger(prefix: string) {
     const log = title.search("rro") === -1 ? consoleError : consoleLog;
 
     if (process.env.ALL_LOGS !== "true") {
-      log(`${timestamp}[${prefix}] ${title}`, data);
+      new Promise(resolve => setTimeout(resolve, 1000)).then(() => {
+        log(`${timestamp}[${prefix}] ${title}`, data)
+      })
     }
   };
 }
 
-process.on("exit", () => {
-  const filename = `log-${new Date().toLocaleString().replace(" ", "-")}.txt`;
-  fs.writeFileSync("log.txt", queue.join("\n"));
-});

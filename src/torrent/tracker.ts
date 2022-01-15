@@ -1,10 +1,10 @@
 import crypto from "crypto";
 
-import { ConnectResponse, AnnounceResponse, Peer, UDPSocket } from "../types";
 import { genId, groupBySize } from "../utils";
 import Torrent from "./torrent";
 import { createLogger } from "../logger";
 import { createUDPConnection } from "../socket";
+import { UDPSocket, Peer, AnnounceResponse, ConnectResponse } from "../types";
 
 const log = createLogger("Tracker");
 
@@ -28,9 +28,11 @@ export default class Tracker {
         if (this.getResponseType(response) === "connect") {
           const announceRequest = await this.receiveConnectionResp(response);
           this.socket.send(announceRequest);
+
         } else if (this.getResponseType(response) === "announce") {
           const { peers } = await this.receiveAnnouceResp(response);
           this.socket.shutdown();
+
           resolve(peers);
         }
       });
@@ -43,7 +45,7 @@ export default class Tracker {
     log("Receive annouce message");
     // 4. parse announce response
     const announceResp = await this.parseAnnounceResp(response);
-    // log("Annouce response ", announceResp);
+    log("Annouce response ", announceResp);
 
     // 5. pass peers to callback
     log("Peers length", announceResp.peers.length);
@@ -134,12 +136,18 @@ export default class Tracker {
   ): Promise<AnnounceResponse> {
     const groupBuff = groupBySize(response.slice(20), 6);
 
-    const peers = groupBuff.map((address) => {
-      return {
-        ip: address.slice(0, 4).join("."),
-        port: address.readUInt16BE(4),
-      } as Peer;
-    });
+    const peers = groupBuff
+      .map((address) => {
+        try {
+          const ip = address.slice(0, 4).join(".")
+          const port = address.readUInt16BE(4)
+
+          return { ip, port }
+        } catch (error) {
+          return null
+        }
+      }).filter(Boolean);
+
 
     return new Promise((res) => {
       res({
@@ -150,5 +158,12 @@ export default class Tracker {
         peers,
       });
     });
+  }
+
+  public async shutdown(): Promise<void> {
+    log("Close Socket connection")
+    if (!this.socket.isClosed) {
+      await this.socket.shutdown()
+    }
   }
 }

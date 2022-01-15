@@ -24,11 +24,10 @@ class Download extends Handlers {
 
   constructor(torrent: Torrent) {
     super();
-    this.message = new Message();
     this.torrent = torrent;
   }
-  
-  public async setTargetFolder(folderName: string): Promise<void> { 
+
+  public async setTargetFolder(folderName: string): Promise<void> {
     const targetPath = path.resolve(
       __dirname,
       folderName,
@@ -37,19 +36,25 @@ class Download extends Handlers {
 
     this.target = fs.openSync(`${targetPath}.zip`, "w");
   }
-  
+
+  public download(peers: Peer[]): void {
+    Promise.all(peers.map(peer => this.pull(peer)))
+  }
+
   public async pull(peer: Peer): Promise<void> {
-    const { ip, port } = peer; 
+    const { ip, port } = peer;
     this.socket = createTCPConnection(ip, port);
 
-    this.createConnection();
+    this.message = new Message(this.socket.getId());
+
+    await this.createConnection();
 
     this.queue = new Queue(this.torrent);
     this.pieces = new Pieces(this.torrent);
 
     this.onWholeMessage(async (message) => {
-      log("Get all message", message);
-      await this.messageHandler(message);
+      log("Get all message", message.toString());
+      await this.messageHandler(message)
     });
   }
 
@@ -61,7 +66,7 @@ class Download extends Handlers {
       await this.socket.write(this.message.setInterested());
     } else {
       const msg = await this.message.parse(message);
-      log("Is not a handshake message", msg);
+      log("Is not a handshake message", this.socket.getId(), msg);
 
       if (msg.id === 0) await this.chokeHandler();
       if (msg.id === 1) await this.unchokeHandler();
@@ -71,21 +76,22 @@ class Download extends Handlers {
     }
   }
 
-  private createConnection(): void {
-    this.socket.connect(async () => {
-      await this.socket.write(this.message.setHandshake(this.torrent));
-    });
+  private async createConnection(): Promise<void> {
+    await this.socket.connect();
+    await this.socket.write(this.message.setHandshake(this.torrent));
   }
 
   protected getMessageSize(handshake: boolean, message: Buffer): number {
     return handshake ? message.readUInt8(0) + 49 : message.readInt32BE(0) + 4;
   }
 
-  private async onWholeMessage(callback: (data: Buffer) => void): Promise<void> {
+  private async onWholeMessage(
+    callback: (data: Buffer) => void,
+  ): Promise<void> {
     let savedBuf = Buffer.alloc(0);
     let handshake = true;
 
-    this.socket.onData(message => {
+    this.socket.onData((message) => {
       const msgLen = this.getMessageSize(handshake, message);
 
       savedBuf = Buffer.concat([savedBuf, message]);
@@ -137,13 +143,20 @@ class Download extends Handlers {
 
     log("Piece Handler");
 
-    const pieceLength = this.torrent.getInfo()["piece length"]
+    const pieceLength = this.torrent.getInfo()["piece length"];
     const pieceStart = pieceLength + payload.begin;
     const offset = payload.index * pieceStart;
 
-    fs.write(this.target, payload.block, 0, payload.block.length, offset, () => {
-      log("Writing data to a target file");
-    }); 
+    fs.write(
+      this.target,
+      payload.block,
+      0,
+      payload.block.length,
+      offset,
+      () => {
+        log("Writing data to a target file");
+      },
+    );
 
     if (this.pieces.isDone()) {
       log("Download finished");
@@ -179,12 +192,17 @@ class Download extends Handlers {
   }
 }
 
-export async function createDownloader(torrent: Torrent, target: string): Promise<Download> {
+export function createDownloader(
+  torrent: Torrent,
+  target: string,
+): Download {
   const targetStatus = fs.lstatSync(target);
 
   if (!targetStatus.isDirectory()) {
-    throw new Error("use a directory as a target to put the downloaded file(s) \n") 
-  } 
+    throw new Error(
+      "use a directory as a target to put the downloaded file(s) \n",
+    );
+  }
 
   const targetPath = path.resolve(target);
   const download = new Download(torrent);

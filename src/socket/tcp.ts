@@ -11,7 +11,7 @@ export default class TCP implements TCPSocket {
 
   constructor(private host: string, private port: number, logs = true) {
     this.id = ++id;
-    
+
     this.port = port;
     this.host = host;
 
@@ -19,22 +19,30 @@ export default class TCP implements TCPSocket {
 
     if (logs) this.loggs();
   }
-  
-  connect(callback: () => void): void {
-    const logData = { port: this.port, host: this.host };
-    log("Init Connection ", this.id, logData);
 
-    this.socket.connect(this.port, this.host, () => {
-      callback();
+  public getId(): number {
+    return this.id;
+  }
+
+  async connect(): Promise<void> {
+    return new Promise((resolve) => {
+      const logData = { port: this.port, host: this.host };
+
+      this.socket.connect(this.port, this.host, () => {
+        log("Init Connection ", this.id, logData);
+        resolve();
+      });
     });
   }
-  
+
   loggs(): void {
     const logData = { port: this.port, host: this.host };
 
     this.socket.on("drain", () => log("Drain", this.id, logData));
     this.socket.on("connect", () => log("Connected", this.id, logData));
-    this.socket.on("lookup", (...args) => log("Lookup", this.id, logData, args));
+    this.socket.on("lookup", (...args) =>
+      log("Lookup", this.id, logData, args),
+    );
     this.socket.on("end", () => log("End connection", this.id, logData));
 
     this.socket.on("error", (error) => {
@@ -43,15 +51,15 @@ export default class TCP implements TCPSocket {
     });
   }
 
+
   onData(callback: (data: Buffer) => void): void {
     this.socket.on("data", callback);
   }
 
   async write(message: Buffer): Promise<boolean> {
     return this.socket.write(message, (error) => {
-      if (error)
-        log("Error write message", this.id, error);
-    })
+      if (error) log("Error write message", this.id, error);
+    });
   }
 
   shutdown(): void {

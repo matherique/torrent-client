@@ -55,14 +55,16 @@ export type KeepAliveMessage = Buffer;
 
 export interface UDPSocket {
   send(message: Buffer): void;
-  shutdown(): void;
+  shutdown(): Promise<void>;
   onMessage(callback: (message: Buffer) => Promise<void>): void;
+  isClosed: () => boolean
 }
 
 export interface TCPSocket {
-  connect(callback: () => void): void;
+  connect(): Promise<void>;
   loggs(): void;
   onData(callback: (data: Buffer) => void): void;
   write(message: Buffer): Promise<boolean>;
   shutdown(): void;
+  getId(): number;
 }

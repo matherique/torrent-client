@@ -1,4 +1,4 @@
-import * as fs from "fs/promises";
+import * as fs from "fs";
 import * as path from "path";
 
 import Torrent, { BLOCK_LEN } from "./torrent";
@@ -9,15 +9,15 @@ type TrackerList = {
   torrent: Torrent;
 };
 
-export async function createTrackerList(file: string): Promise<TrackerList> {
-  const fileStats = await fs.lstat(file);
+export function createTrackerList(file: string): TrackerList {
+  const fileStats = fs.lstatSync(file);
 
   if (!fileStats.isFile()) {
     throw new Error("use a torrent file as a parameter \n");
   }
 
   const filepath = path.resolve(file);
-  const content = await fs.readFile(filepath);
+  const content = fs.readFileSync(filepath);
 
   const torrent = new Torrent(content);
   const tracker = new Tracker(torrent);
