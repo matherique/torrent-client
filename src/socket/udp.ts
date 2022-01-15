@@ -36,7 +36,6 @@ export default class UDP implements UDPSocket {
       this.port,
       this.hostname,
       (error, byts) => {
-        console.log("AAAAA", byts)
         if (error) {
           log("Error sending message", error);
         }

@@ -30,4 +30,3 @@ const downloader = createDownloader(
 tracker.getPeers().then(peers => {
   downloader.download(peers)
 })
-
