@@ -1,7 +1,2 @@
-node_modules/
 *.torrent
-teste*
-torrents/*
-target/*
-log.txt
-data/
+
